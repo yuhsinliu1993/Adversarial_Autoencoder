@@ -1,5 +1,7 @@
 import numpy as np
 
+TINY = 1e-8
+
 
 def get_dim(tensor):
     dim = 1

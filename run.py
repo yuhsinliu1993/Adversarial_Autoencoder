@@ -10,7 +10,7 @@ from aae import AAE
 from utils import to_categorical
 
 
-def train(input_dim, z_dim, num_epochs, num_classes, batch_size, learning_rate, shuffle=False, data_dir=None):
+def train(input_dim, z_dim, num_epochs, num_classes, batch_size, learning_rate, shuffle=False, data_dir=None, summary_dir=None):
     # Load data
     X_train = np.load(os.path.join(data_dir, 'data.npy'))
     y_train = np.load(os.path.join(data_dir, 'label.npy'))
@@ -25,10 +25,12 @@ def train(input_dim, z_dim, num_epochs, num_classes, batch_size, learning_rate, 
             aae = AAE(input_dim, z_dim, num_classes, batch_size, learning_rate)
             aae.build(L_G_type=FLAGS.L_G_type)
 
-            tf.logging.info('Create new session')
-            sess.run(tf.global_variables_initializer())
+            loss_summary_writer = tf.summary.FileWriter(summary_dir, sess.graph)
 
             num_batches_per_epoch = X_train.shape[0] // batch_size
+
+            tf.logging.info('Create new session')
+            sess.run(tf.global_variables_initializer())
 
             for epoch in range(num_epochs):
                 total_vae_loss, total_gen_loss, total_disc_loss = 0.0, 0.0, 0.0
@@ -47,28 +49,34 @@ def train(input_dim, z_dim, num_epochs, num_classes, batch_size, learning_rate, 
                     X_batch = X_shuffled[start_index:end_index]
                     y_batch = y_shuffled[start_index:end_index]
 
-                    vae_loss, gen_loss, disc_loss = train_step(X_batch, y_batch, sess, aae)
+                    vae_loss, gen_loss, disc_loss = train_step(X_batch, y_batch, sess, aae, loss_summary_writer)
+                    # aae.write_summary(X_batch, y_batch, sess, loss_summary_writer, summary_op)
 
                     total_vae_loss += vae_loss
                     total_gen_loss += gen_loss
                     total_disc_loss += disc_loss
 
-                print("Epoch %d ==> vae_loss: %.4f\tgen_loss: %.4f\tdisc_loss: %.4f" % (epoch, total_vae_loss / num_batches_per_epoch, total_gen_loss / num_batches_per_epoch, total_disc_loss / num_batches_per_epoch))
+                print("Epoch %3d ==> vae_loss: %.4f\tgen_loss: %.4f\tdisc_loss: %.4f" % (epoch, total_vae_loss / num_batches_per_epoch, total_gen_loss / num_batches_per_epoch, total_disc_loss / num_batches_per_epoch))
 
 
-def train_step(X, y, sess, model):
-    vae_loss, gen_loss, disc_loss = 0.0, 0.0, 0.0
+def train_step(X, y, sess, model, writer):
 
-    disc_loss += model.train_DISCRIMINATOR(X, y, sess)
+    vae_loss = model.train_VAE(X, sess, writer)
 
-    vae_loss += model.train_VAE(X, sess)
+    model.train_DISCRIMINATOR(X, y, sess)
+    model.train_DISCRIMINATOR(X, y, sess)
+    # model.train_DISCRIMINATOR(X, y, sess)
+    # model.train_DISCRIMINATOR(X, y, sess)
+    disc_loss = model.train_DISCRIMINATOR(X, y, sess, writer)
 
-    model.train_GENERATOR(X, y, sess)
-    model.train_GENERATOR(X, y, sess)
-    model.train_GENERATOR(X, y, sess)
-    model.train_GENERATOR(X, y, sess)
-    model.train_GENERATOR(X, y, sess)
-    gen_loss += model.train_GENERATOR(X, y, sess)
+    # model.train_GENERATOR(X, y, sess, L_G_summary_op)
+    # model.train_GENERATOR(X, y, sess, L_G_summary_op)
+    # model.train_GENERATOR(X, y, sess, L_G_summary_op)
+    # model.train_GENERATOR(X, y, sess, L_G_summary_op)
+    # model.train_GENERATOR(X, y, sess, L_G_summary_op)
+    gen_loss = model.train_GENERATOR(X, y, sess, writer)
+
+    model.step += 1
 
     return vae_loss, gen_loss, disc_loss
 
@@ -77,7 +85,7 @@ def run(_):
     if FLAGS.mode == 'train':
         input_dim = 28 * 28 * 1
         z_dim = 2
-        train(input_dim, z_dim, FLAGS.num_epochs, FLAGS.num_classes, FLAGS.batch_size, FLAGS.learning_rate, FLAGS.shuffle, FLAGS.data_dir)
+        train(input_dim, z_dim, FLAGS.num_epochs, FLAGS.num_classes, FLAGS.batch_size, FLAGS.learning_rate, FLAGS.shuffle, FLAGS.data_dir, FLAGS.summary_dir)
     else:
         pass
 
@@ -119,6 +127,12 @@ if __name__ == '__main__':
         type=str,
         default='data',
         help='Specify the directory of data',
+    )
+    parser.add_argument(
+        '--summary_dir',
+        type=str,
+        default='summary',
+        help='Specify the directory of summaries',
     )
     parser.add_argument(
         '--mode',
