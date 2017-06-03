@@ -44,8 +44,8 @@ optional arguments:
 ```
 
 
-Losses
-------
+Losses & Reconstruction
+-----------------------
 
 Training for 100+ epochs ...
 
@@ -61,3 +61,16 @@ Training for 100+ epochs ...
 ### Generator Loss  (Using Adam optimizer)
 
 ![](assets/pic_gen_loss.png)
+
+
+### Reconstructed MNIST images
+
+![](assets/recon1.png)
+
+![](assets/recon2.png)
+
+
+### T-SNE of the lantent space
+
+![](assets/t-sne-latent_space.png)
+
