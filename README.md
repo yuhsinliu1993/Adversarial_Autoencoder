@@ -8,6 +8,7 @@ Reference
 [Adversarial Autoencoders](https://arxiv.org/abs/1511.05644) proposed by Ian Goodfellow et la. in 2016
 
 
+
 Usage
 -----
 
@@ -49,28 +50,28 @@ Losses & Reconstruction
 
 Training for 100+ epochs ...
 
-### VAE Loss  (Using Adam optimizer)
+- VAE Loss  (Using Adam optimizer)
 
 ![](assets/pic_recon_loss.png)
 
 
-### Discriminator Loss  (Using Adam optimizer)
+- Discriminator Loss  (Using Adam optimizer)
 
 ![](assets/pic_disc_loss.png)
 
-### Generator Loss  (Using Adam optimizer)
+- Generator Loss  (Using Adam optimizer)
 
 ![](assets/pic_gen_loss.png)
 
 
-### Reconstructed MNIST images
+- Reconstructed MNIST images
 
 ![](assets/recon1.png)
 
 ![](assets/recon2.png)
 
 
-### T-SNE of the lantent space
+- T-SNE of the lantent space
 
 ![](assets/t-sne-latent_space.png)
 
