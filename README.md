@@ -59,7 +59,7 @@ Training for 100+ epochs ...
 
 ![](assets/pic_disc_loss.png)
 
-- Generator Loss  (Using Adam optimizer)
+- Generator Loss  (Using SGD optimizer)
 
 ![](assets/pic_gen_loss.png)
 
