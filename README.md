@@ -1,9 +1,11 @@
 # Advesarial Autoencoder (AAE) by using tensorflow
 
-References
+![](assest/aae.png)
+
+Reference
 ----------
 
-1. [Adversarial Autoencoders](https://arxiv.org/abs/1511.05644) proposed by Ian Goodfellow et la. in 2016
+[Adversarial Autoencoders](https://arxiv.org/abs/1511.05644) proposed by Ian Goodfellow et la. in 2016
 
 
 Usage
@@ -40,3 +42,22 @@ optional arguments:
   --plot                Plot the t-sne, reconstructed images and generated
                         images
 ```
+
+
+Losses
+------
+
+Training for 100+ epochs ...
+
+### VAE Loss  (Using Adam optimizer)
+
+![](assest/pic_recon_loss.png)
+
+
+### Discriminator Loss  (Using Adam optimizer)
+
+![](assest/pic_disc_loss.png)
+
+### Generator Loss  (Using Adam optimizer)
+
+![](assest/pic_gen_loss.png)
