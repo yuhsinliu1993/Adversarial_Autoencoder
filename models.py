@@ -1,41 +1,28 @@
-import math
 import tensorflow as tf
-import numpy as np
 
-from utils import get_dim
+import layers
 
 
 class Encoder(object):
 
-    def __init__(self, layer_list, z_dim):
-        self.layer_list = layer_list  # should be [784, ..., z_dim]
+    def __init__(self, z_dim):
         self.z_dim = z_dim
 
-    def __call__(self, X, is_training):
-        """
-        INPUT:
-            X: shape = (None, hieght x width x depth)
-        Return:
-
-        """
-        hidden = X
+    def __call__(self, inputs, is_training):
 
         with tf.variable_scope('encoder'):
+            enc_l1 = layers.linear(inputs, (784, 1000), 'enc_l1')
+            enc_b1 = layers.batch_normalization(enc_l1, 1000, 'enc_b1', is_training)
+            enc_r1 = layers.leaky_relu(enc_b1)
 
-            for i, (in_dim, out_dim) in enumerate(zip(self.layer_list, self.layer_list[1:])):
-                shape = (in_dim, out_dim)
-                hidden = _linear(hidden, shape, i)
-                hidden = leaky_relu(batch_normalization(hidden, i, is_training))
+            enc_l2 = layers.linear(enc_r1, (1000, 1000), 'enc_l2')
+            enc_b2 = layers.batch_normalization(enc_l2, 1000, 'enc_b2', is_training)
+            enc_r2 = layers.leaky_relu(enc_b2)
 
-            """
-            Instead of generating a vector of real values, encoder will generate
-            a vector of means and a vector of standard deviations.
-            """
-            h_out_dim = get_dim(hidden)
-            mu = _linear(hidden, (h_out_dim, self.z_dim), 'mu')  # mean
-            log_sigma = _linear(hidden, (h_out_dim, self.z_dim), 'log_sigma')  # log std
+            enc_l3 = layers.linear(enc_r2, (1000, self.z_dim), 'enc_l3')
+            encoded = layers.batch_normalization(enc_l3, self.z_dim, 'enc_b3', is_training)
 
-        return mu, log_sigma
+            return encoded
 
     def get_variables(self):
         _vars = tf.trainable_variables()
@@ -50,21 +37,24 @@ class Encoder(object):
 
 class Decoder(object):
 
-    def __init__(self, layer_list):
+    def __init__(self, z_dim):
         # should be [z_dim, ..., 784]
-        self.layer_list = layer_list
+        self.z_dim = z_dim
 
-    def __call__(self, z, is_training):
-
-        hidden = z
+    def __call__(self, inputs, is_training):
 
         with tf.variable_scope('decoder'):
-            for i, (in_dim, out_dim) in enumerate(zip(self.layer_list, self.layer_list[1:])):
-                shape = (in_dim, out_dim)
-                output = _linear(hidden, shape, i)
-                hidden = leaky_relu(batch_normalization(output, i, is_training))
+            dec_l1 = layers.linear(inputs, (self.z_dim, 1000), 'dec_l1')
+            dec_b1 = layers.batch_normalization(dec_l1, 1000, 'dec_b1', is_training)
+            dec_r1 = layers.leaky_relu(dec_b1)
 
-        return output
+            dec_l2 = layers.linear(dec_r1, (1000, 1000), 'dec_l2')
+            dec_b2 = layers.batch_normalization(dec_l2, 1000, 'dec_b2', is_training)
+            dec_r2 = layers.leaky_relu(dec_b2)
+
+            dec_l3 = layers.linear(dec_r2, (1000, 784), 'dec_l3')
+
+            return tf.sigmoid(dec_l3)
 
     def get_variables(self):
         _vars = tf.trainable_variables()
@@ -79,10 +69,11 @@ class Decoder(object):
 
 class Discriminator(object):
 
-    def __init__(self, layer_list):
-        self.layer_list = layer_list  # should be [z_dim + classes + 1, ..., 1]
+    def __init__(self, z_dim, num_classes):
+        self.z_dim = z_dim
+        self.num_classes = num_classes
 
-    def __call__(self, z, y, is_training):
+    def __call__(self, inputs, y, is_training):
         """
         INPUTS:
             z: latent space
@@ -91,15 +82,20 @@ class Discriminator(object):
             `logits` (i.e. no activation function like sigmoid, softmax, ...)
         """
 
-        hidden = tf.concat([z, y], axis=1)
+        h = tf.concat([inputs, y], axis=1)   # inputs's shape: (batch_size, z_dim + num_classes + 1)
 
         with tf.variable_scope('discriminator'):
-            for i, (in_dim, out_dim) in enumerate(zip(self.layer_list, self.layer_list[1:])):
-                shape = (in_dim, out_dim)
-                output = _linear(hidden, shape, i)
-                hidden = leaky_relu(batch_normalization(output, i, is_training))
+            h = layers.linear(h, (self.z_dim + self.num_classes + 1, 500), 'disc_l1')
+            h = layers.batch_normalization(h, 500, 'disc_b1')
+            h = layers.leaky_relu(h)
 
-        return output
+            h = layers.linear(h, (500, 500), 'disc_l2')
+            h = layers.batch_normalization(h, 500, 'disc_b2')
+            h = layers.leaky_relu(h)
+
+            logits = layers.linear(h, (500, 1), 'disc_l3')
+
+            return logits
 
     def get_variables(self):
         _vars = tf.trainable_variables()
@@ -110,107 +106,3 @@ class Discriminator(object):
                 ret.append(var)
 
         return ret
-
-
-class Sampler(object):
-    """
-    Draw "true" samples z' from the predifined prior p(z)
-    """
-
-    def __init__(self, class_num):
-        # 0 -- class_num - 1: calssification index
-        # class_num: for unlabeled index
-        self.class_num = class_num
-
-        self.x_variance = 0.5
-        self.y_variance = 0.05
-        self.radial = 2.0
-
-    def __call__(self, class_indexes):
-        ret = []
-        for class_index in class_indexes:
-            x = np.random.normal(0.0, self.x_variance) + self.radial
-            y = np.random.normal(0.0, self.y_variance)
-            rad = self._get_radian(class_index)
-            x, y = self._rotate(x, y, rad)
-            ret.append([x, y])
-
-        return np.asarray(ret)
-
-    def _get_radian(self, class_index):
-        return 2 * np.pi * float(class_index) / float(self.class_num)
-
-    def _rotate(self, x, y, radian):
-        mod_x = x * math.cos(radian) - y * math.sin(radian)
-        mod_y = x * math.sin(radian) + y * math.cos(radian)
-        return mod_x, mod_y
-
-
-def _linear(x, shape, _id):
-    if len(shape) != 2 or not isinstance(shape, (tuple, list)):
-        raise ValueError("`shape` should be a list of (input_dim, output_dim)")
-
-    weights = tf.get_variable(name='weights_{}'.format(_id),
-                              shape=shape,
-                              dtype=tf.float32,
-                              initializer=tf.random_normal_initializer(stddev=1.0 / np.sqrt(float(shape[0]))),
-                              trainable=True)
-
-    biases = tf.get_variable(name='biases_{}'.format(_id),
-                             shape=shape[1],
-                             dtype=tf.float32,
-                             initializer=tf.constant_initializer(0.0),
-                             trainable=True)
-
-    return tf.matmul(x, weights) + biases
-
-
-def leaky_relu(x, leak=0.2):
-    return tf.maximum(x, leak * x)
-
-
-def batch_normalization(x, _ids, is_training=True):
-    decay_rate = 0.99
-
-    shape = x.get_shape().as_list()
-    dim = shape[-1]
-
-    if len(shape) == 2:
-        mean, var = tf.nn.moments(x, [0], name='moments_bn_{}'.format(_ids))
-    elif len(shape) == 4:
-        mean, var = tf.nn.moments(x, [0, 1, 2], name='moments_bn_{}'.format(_ids))
-
-    avg_mean = tf.get_variable(name='avg_mean_bn_{}'.format(_ids),
-                               shape=(1, dim),
-                               dtype=tf.float32,
-                               initializer=tf.constant_initializer(0.0),
-                               trainable=False)
-
-    avg_var = tf.get_variable(name='avg_var_bn_{}'.format(_ids),
-                              shape=(1, dim),
-                              dtype=tf.float32,
-                              initializer=tf.constant_initializer(1.0),
-                              trainable=False)
-
-    beta = tf.get_variable(name='beta_bn_{}'.format(_ids),
-                           shape=(1, dim),
-                           dtype=tf.float32,
-                           initializer=tf.constant_initializer(0.0),
-                           trainable=True)
-
-    gamma = tf.get_variable(name='gamma_bn_{}'.format(_ids),
-                            shape=(1, dim),
-                            dtype=tf.float32,
-                            initializer=tf.constant_initializer(1.0),
-                            trainable=True)
-
-    if is_training:
-        avg_mean_assign_op = tf.assign(avg_mean, decay_rate * avg_mean + (1 - decay_rate) * mean)
-        avg_var_assign_op = tf.assign(avg_var, decay_rate * avg_var + (1 - decay_rate) * var)
-
-        with tf.control_dependencies([avg_mean_assign_op, avg_var_assign_op]):
-            ret = gamma * (x - mean) / tf.sqrt(1e-6 + var) + beta
-    else:
-        ret = gamma * (x - avg_mean) / tf.sqrt(1e-6 + avg_var) + beta
-
-    return ret

@@ -1,6 +1,6 @@
 import numpy as np
 
-TINY = 1e-8
+TINY = 1e-10
 
 
 def get_dim(tensor):
