@@ -1,6 +1,6 @@
 # Advesarial Autoencoder (AAE) by using tensorflow
 
-![](assest/aae.png)
+![](assets/aae.png)
 
 Reference
 ----------
@@ -51,13 +51,13 @@ Training for 100+ epochs ...
 
 ### VAE Loss  (Using Adam optimizer)
 
-![](assest/pic_recon_loss.png)
+![](assets/pic_recon_loss.png)
 
 
 ### Discriminator Loss  (Using Adam optimizer)
 
-![](assest/pic_disc_loss.png)
+![](assets/pic_disc_loss.png)
 
 ### Generator Loss  (Using Adam optimizer)
 
-![](assest/pic_gen_loss.png)
+![](assets/pic_gen_loss.png)
