@@ -63,9 +63,12 @@ def train(input_dim, z_dim, num_epochs, num_classes, batch_size, learning_rate, 
                 plot_generated_images(aae, sess)
 
                 indices = np.random.choice(X_train.shape[0], size=5000)
-                X_sample = X_train[indices].astype('float64')
+                X_sample = X_train[indices]
                 y_sample = y_train[indices]
-                plot_tsne(X_sample, y_sample)
+
+                X_latent_space = aae.get_latent_space(sess, X_sample)
+                X_latent_space = X_latent_space.astype('float64')
+                plot_tsne(X_latent_space, y_sample)
 
 
 def train_step(X, y, sess, model, writer):

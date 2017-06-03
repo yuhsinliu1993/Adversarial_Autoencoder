@@ -61,15 +61,6 @@ class AAE(object):
         self.latent_space = self.encoder(self.X, is_training=False)
         self.generated_imgs = self.decoder(self.z_inputs, is_training=False)
 
-    def _build_train_ops(self):
-        encoder_train_vars = self.encoder.get_variables()
-        decoder_train_vars = self.decoder.get_variables()
-        disc_train_vars = self.discriminator.get_variables()
-
-        self.vae_train_op = tf.train.AdamOptimizer(self.learning_rate).minimize(self.recon_loss, var_list=encoder_train_vars + decoder_train_vars)
-        self.disc_train_op = tf.train.AdamOptimizer(self.learning_rate).minimize(self.L_D, var_list=disc_train_vars)
-        self.gen_train_op = tf.train.GradientDescentOptimizer(self.learning_rate).minimize(self.L_G, var_list=encoder_train_vars)
-
     def _build_VAE_network(self):
         self.q_z = self.encoder(self.X, is_training=True)
         self.recon_imgs = self.decoder(self.q_z, is_training=True)
@@ -95,6 +86,15 @@ class AAE(object):
                 self.L_G = -tf.reduce_mean(tf.log(tf.sigmoid(fake_logits) + TINY))
 
             self.L_G_summary = tf.summary.scalar('Generator_Loss', self.L_G)
+
+    def _build_train_ops(self):
+        encoder_train_vars = self.encoder.get_variables()
+        decoder_train_vars = self.decoder.get_variables()
+        disc_train_vars = self.discriminator.get_variables()
+
+        self.vae_train_op = tf.train.AdamOptimizer(self.learning_rate).minimize(self.recon_loss, var_list=encoder_train_vars + decoder_train_vars)
+        self.disc_train_op = tf.train.AdamOptimizer(self.learning_rate).minimize(self.L_D, var_list=disc_train_vars)
+        self.gen_train_op = tf.train.GradientDescentOptimizer(self.learning_rate).minimize(self.L_G, var_list=encoder_train_vars)
 
     def _sample_StandarddNormal(self, shape):
         return np.random.standard_normal(size=shape)
