@@ -20,12 +20,12 @@ class AAE(object):
 
     LOSS:
         tf.nn.sigmoid_cross_entropy_with_logits:
-                t * -log(sigmoid(x)) + (1 - t) * -log(1 - sigmoid(x))    x: logits, t: labels
+            t * -log(sigmoid(x)) + (1 - t) * -log(1 - sigmoid(x))    x: logits, t: labels
 
         Reconstruction Loss:
             1. MSE
 
-        Type of Generator Loss:
+        Generator Loss:
             1. minimize:  log(1 - sigmoid(D(q_z)))
             2. minimize:  -log(sigmoid(D(q_z)))
 
@@ -99,12 +99,12 @@ class AAE(object):
     def _sample_StandarddNormal(self, shape):
         return np.random.standard_normal(size=shape)
 
-    def train_VAE(self, X, sess, writer=None):
-        feed_dict = {
-            self.X: X
-        }
+    def _sample_Guassian(self):
+        pass
 
-        _, recon_loss, summary = sess.run([self.vae_train_op, self.recon_loss, self.recon_loss_summary], feed_dict=feed_dict)
+    def train_VAE(self, X, sess, writer=None):
+
+        _, recon_loss, summary = sess.run([self.vae_train_op, self.recon_loss, self.recon_loss_summary], feed_dict={self.X: X})
 
         if writer:
             writer.add_summary(summary, self.step)
@@ -141,9 +141,15 @@ class AAE(object):
         return disc_loss
 
     def get_latent_space(self, sess, X):
+        """
+        Return the lantent space
+        """
         return sess.run(self.latent_space, feed_dict={self.X: X})
 
     def get_reconstructed_images(self, sess, X):
+        """
+        Reconstruct the given images through the VAE network
+        """
         return sess.run(self.recon_imgs, feed_dict={self.X: X})
 
     def get_generated_images(self, sess, q_z=None):

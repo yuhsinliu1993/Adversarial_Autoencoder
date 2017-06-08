@@ -2,6 +2,14 @@ import numpy as np
 import tensorflow as tf
 
 
+def relu(x):
+    return tf.maximum(x, 0)
+
+
+def leaky_relu(x, leak=0.2):
+    return tf.maximum(x, leak * x)
+
+
 def linear(x, shape, name):
     if len(shape) != 2 or not isinstance(shape, (tuple, list)):
         raise ValueError("`shape` should be a list of (input_dim, output_dim)")
@@ -19,10 +27,6 @@ def linear(x, shape, name):
                              trainable=True)
 
     return tf.matmul(x, weights) + biases
-
-
-def leaky_relu(x, leak=0.2):
-    return tf.maximum(x, leak * x)
 
 
 def batch_normalization(x, dim, name, is_training=True):
